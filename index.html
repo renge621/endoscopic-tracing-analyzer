@@ -1,9 +1,41 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ETA v0.5 B-circle</title><style>body{font:16px -apple-system,BlinkMacSystemFont,sans-serif;background:#f4f7fa;color:#1b2836;margin:0}main{max-width:700px;margin:auto;padding:16px}section{background:white;border-radius:14px;padding:18px;margin:14px 0}canvas{width:100%;height:auto;border:1px solid #bbc6d0;touch-action:manipulation}button{padding:12px;border:0;border-radius:9px;background:#1666a1;color:white;font-size:16px;margin:5px}button:disabled{opacity:.45}input{max-width:100%}td{padding:8px;border-bottom:1px solid #ddd}small{color:#526170}</style></head><body><main><h2>Endoscopic Tracing Analyzer</h2><small>研究用プロトタイプ v0.5：緑色B円（直径20 mm）のみ評価・精度未検証</small><section><h3>1. 写真を選択</h3><input id="file" type="file" accept="image/*"><p id="status">4課題の用紙の場合は、評価する1枠を写真で切り出してから選択してください。</p><img id="preview" style="display:none;max-width:100%" alt="選択画像"></section><section><h3>2. 位置合わせ</h3><p>評価する1枠の四隅にある黒いマーカーの白い中心を「左上→右上→右下→左下」の順にタップしてください。</p><canvas id="view" width="600" height="600"></canvas><p><button id="reset">点をリセット</button><p><small>合格範囲は緑円の印刷幅（中心線から±1 mm）で固定です。</small></p><button id="run" disabled>解析</button></p></section><section id="results" hidden><h3>3. B円の達成率（暫定）</h3><p id="note"></p><table id="table"></table><canvas id="overlay" width="500" height="500"></canvas><p><button id="csv">CSV保存</button><button id="png">解析画像保存</button></p></section><section><small>対象はB円のみ（中心線半径10 mm、印刷線幅2 mm）。マーカー中心間距離91 mm。緑色の印刷帯（半径9〜11 mm）を固定の合格範囲とします。黒い筆跡を検出します。文字・影・汚れの誤検出があり、研究用の精度検証は未実施です。撮影画像は外部送信しません。</small></section></main><script>
-const el=id=>document.getElementById(id),view=el('view'),ctx=view.getContext('2d'),overlay=el('overlay'),oc=overlay.getContext('2d');let img=null,pts=[],scale=1,dx=0,dy=0,results=null;
-function show(){if(!img)return;let w=img.naturalWidth,h=img.naturalHeight;scale=Math.min(600/w,600/h);dx=(600-w*scale)/2;dy=(600-h*scale)/2;ctx.fillStyle='white';ctx.fillRect(0,0,600,600);ctx.drawImage(img,dx,dy,w*scale,h*scale);pts.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x*scale+dx,p.y*scale+dy,7,0,7);ctx.fillStyle='#d12648';ctx.fill();ctx.fillStyle='white';ctx.font='bold 12px sans-serif';ctx.fillText(i+1,p.x*scale+dx-3,p.y*scale+dy+4)});el('status').textContent='画像表示OK。位置合わせ '+pts.length+'/4 点';}
-el('file').onchange=()=>{let f=el('file').files[0];if(!f)return;el('status').textContent='読み込み中…';let reader=new FileReader();reader.onerror=()=>el('status').textContent='読み込みエラー';reader.onload=()=>{let next=new Image();next.onload=()=>{img=next;pts=[];el('preview').src=reader.result;el('preview').style.display='block';el('results').hidden=true;el('run').disabled=true;show()};next.onerror=()=>el('status').textContent='画像を開けません。JPEGかPNGで試してください。';next.src=reader.result};reader.readAsDataURL(f)};
-view.onclick=e=>{if(!img||pts.length===4)return;let r=view.getBoundingClientRect();let x=(e.clientX-r.left)*600/r.width,y=(e.clientY-r.top)*600/r.height;pts.push({x:(x-dx)/scale,y:(y-dy)/scale});show();el('run').disabled=pts.length!==4};
-el('reset').onclick=()=>{pts=[];el('run').disabled=true;el('results').hidden=true;show()};
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ETA v0.6 B-circle</title><style>body{font:16px -apple-system,BlinkMacSystemFont,sans-serif;background:#f4f7fa;color:#1b2836;margin:0}main{max-width:700px;margin:auto;padding:16px}section{background:white;border-radius:14px;padding:18px;margin:14px 0}canvas{width:100%;height:auto;border:1px solid #bbc6d0;touch-action:manipulation}button{padding:12px;border:0;border-radius:9px;background:#1666a1;color:white;font-size:16px;margin:5px}button:disabled{opacity:.45}input{max-width:100%}td{padding:8px;border-bottom:1px solid #ddd}small{color:#526170}</style></head><body><main><h2>Endoscopic Tracing Analyzer</h2><small>研究用プロトタイプ v0.6：緑色B円（直径20 mm）のみ評価・精度未検証</small><section><h3>1. 写真を選択</h3><input id="file" type="file" accept="image/*"><p id="status">写真を選択してください。</p><img id="preview" style="display:none;max-width:100%" alt="選択画像"></section><section><h3>2. 位置合わせ</h3><p>評価する1枠の四隅にある黒いマーカーの白い中心を「左上→右上→右下→左下」の順にタップしてください。タップ後、下の拡大画面で中心を微調整できます。</p><canvas id="view" width="600" height="600"></canvas><div id="fine" hidden style="border:1px solid #dce4eb;border-radius:12px;padding:12px;margin-top:12px"><b>拡大して位置を微調整</b><p style="font-size:14px">調整する点を選び、拡大画面をタップするか矢印で動かしてください。十字線がマーカーの白い中心に重なるようにします。</p><div id="pointBtns" style="display:flex;flex-wrap:wrap"></div><canvas id="zoom" width="360" height="260" style="max-width:100%;width:360px;touch-action:none"></canvas><div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><label>拡大 <select id="zoomLevel"><option value="24">標準</option><option value="12">大</option><option value="6">最大</option></select></label><label>移動量 <select id="step"><option value="1">1 px</option><option value="0.25">0.25 px</option><option value="2">2 px</option></select></label><button id="up" type="button">↑</button><button id="left" type="button">←</button><button id="down" type="button">↓</button><button id="right" type="button">→</button></div></div><p><button id="reset">点をリセット</button><p><small>合格範囲は緑円の印刷幅（中心線から±1 mm）で固定です。</small></p><button id="run" disabled>解析</button></p></section><section id="results" hidden><h3>3. B円の達成率（暫定）</h3><p id="note"></p><table id="table"></table><canvas id="overlay" width="500" height="500"></canvas><p><button id="csv">CSV保存</button><button id="png">解析画像保存</button></p></section><section><small>対象はB円のみ（中心線半径10 mm、印刷線幅2 mm）。マーカー中心間距離91 mm。緑色の印刷帯（半径9〜11 mm）を固定の合格範囲とします。黒い筆跡を検出します。文字・影・汚れの誤検出があり、研究用の精度検証は未実施です。撮影画像は外部送信しません。</small></section></main><script>
+const el=id=>document.getElementById(id),view=el('view'),ctx=view.getContext('2d'),overlay=el('overlay'),oc=overlay.getContext('2d');let img=null,pts=[],scale=1,dx=0,dy=0,results=null,selected=0;const zoom=el("zoom"),zc=zoom.getContext("2d");
+function show(){if(!img)return;let w=img.naturalWidth,h=img.naturalHeight;scale=Math.min(600/w,600/h);dx=(600-w*scale)/2;dy=(600-h*scale)/2;ctx.fillStyle='white';ctx.fillRect(0,0,600,600);ctx.drawImage(img,dx,dy,w*scale,h*scale);pts.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x*scale+dx,p.y*scale+dy,7,0,7);ctx.fillStyle='#d12648';ctx.fill();ctx.fillStyle='white';ctx.font='bold 12px sans-serif';ctx.fillText(i+1,p.x*scale+dx-3,p.y*scale+dy+4)});el('status').textContent='画像表示OK。位置合わせ '+pts.length+'/4 点';drawZoom();}
+el('file').onchange=()=>{let f=el('file').files[0];if(!f)return;el('status').textContent='読み込み中…';let reader=new FileReader();reader.onerror=()=>el('status').textContent='読み込みエラー';reader.onload=()=>{let next=new Image();next.onload=()=>{img=next;pts=[];selected=0;el('preview').src=reader.result;el('preview').style.display='block';el('results').hidden=true;el('run').disabled=true;show()};next.onerror=()=>el('status').textContent='画像を開けません。JPEGかPNGで試してください。';next.src=reader.result};reader.readAsDataURL(f)};
+view.onclick=e=>{if(!img||pts.length===4)return;let r=view.getBoundingClientRect();let x=(e.clientX-r.left)*600/r.width,y=(e.clientY-r.top)*600/r.height;pts.push({x:(x-dx)/scale,y:(y-dy)/scale});selected=pts.length-1;show();el('run').disabled=pts.length!==4};
+el('reset').onclick=()=>{pts=[];selected=0;el('run').disabled=true;el('results').hidden=true;show()};
+function drawZoom(){
+ el('fine').hidden=!img||pts.length===0;
+ if(!img||!pts.length)return;
+ selected=Math.min(selected,pts.length-1);
+ const names=['① 左上','② 右上','③ 右下','④ 左下'];
+ el('pointBtns').innerHTML=names.slice(0,pts.length).map((n,i)=>`<button type="button" data-idx="${i}" style="background:${i===selected?'#1666a1':'#7b8996'}">${n}</button>`).join('');
+ el('pointBtns').querySelectorAll('button').forEach(b=>b.onclick=()=>{selected=+b.dataset.idx;drawZoom()});
+ const p=pts[selected],span=+el('zoomLevel').value,zw=zoom.width,zh=zoom.height;
+ zc.fillStyle='white';zc.fillRect(0,0,zw,zh);
+ // View spans 'span' original-image pixels horizontally; pixel coordinates are retained.
+ const pixPerView=zw/span;
+ zc.imageSmoothingEnabled=false;
+ zc.drawImage(img,p.x-span/2,p.y-span*zh/zw/2,span,span*zh/zw,0,0,zw,zh);
+ zc.strokeStyle='#f03a51';zc.lineWidth=1.5;
+ zc.beginPath();zc.moveTo(zw/2,0);zc.lineTo(zw/2,zh);zc.moveTo(0,zh/2);zc.lineTo(zw,zh/2);zc.stroke();
+ zc.beginPath();zc.arc(zw/2,zh/2,6,0,Math.PI*2);zc.stroke();
+ zc.fillStyle='#172b3b';zc.font='12px sans-serif';zc.fillText(`点${selected+1}  x=${p.x.toFixed(2)} y=${p.y.toFixed(2)} px`,8,16);
+}
+zoom.addEventListener('pointerdown',e=>{
+ if(!pts.length)return;
+ const r=zoom.getBoundingClientRect(),span=+el('zoomLevel').value;
+ pts[selected].x+=((e.clientX-r.left)/r.width-.5)*span;
+ pts[selected].y+=((e.clientY-r.top)/r.height-.5)*span*zoom.height/zoom.width;
+ pts[selected].x=Math.max(0,Math.min(img.naturalWidth-1,pts[selected].x));
+ pts[selected].y=Math.max(0,Math.min(img.naturalHeight-1,pts[selected].y));show();
+});
+for(const [id,x,y] of [['up',0,-1],['left',-1,0],['down',0,1],['right',1,0]]){
+ el(id).onclick=()=>{if(!pts.length)return;const d=+el('step').value;
+ pts[selected].x=Math.max(0,Math.min(img.naturalWidth-1,pts[selected].x+x*d));
+ pts[selected].y=Math.max(0,Math.min(img.naturalHeight-1,pts[selected].y+y*d));show()};
+}
+el('zoomLevel').onchange=drawZoom;
 function solve(A,b){let n=b.length;A=A.map((r,i)=>[...r,b[i]]);for(let j=0;j<n;j++){let k=j;for(let i=j+1;i<n;i++)if(Math.abs(A[i][j])>Math.abs(A[k][j]))k=i;[A[j],A[k]]=[A[k],A[j]];let z=A[j][j];if(Math.abs(z)<1e-9)throw Error('位置合わせ点を確認してください');for(let q=j;q<=n;q++)A[j][q]/=z;for(let i=0;i<n;i++)if(i!==j){z=A[i][j];for(let q=j;q<=n;q++)A[i][q]-=z*A[j][q]}}return A.map(r=>r[n])}
 function transform(){let target=[[0,0],[91,0],[91,91],[0,91]],A=[],b=[];target.forEach(([x,y],i)=>{let p=pts[i];A.push([x,y,1,0,0,0,-p.x*x,-p.x*y]);b.push(p.x);A.push([0,0,0,x,y,1,-p.y*x,-p.y*y]);b.push(p.y)});return solve(A,b)}
 function map(H,x,y){let d=H[6]*x+H[7]*y+1;return [(H[0]*x+H[1]*y+H[2])/d,(H[3]*x+H[4]*y+H[5])/d]}
@@ -84,7 +116,5 @@ el('run').onclick=()=>{try{
 
  }catch(e){alert('解析エラー：'+e.message)}
 };
-function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}el('csv').onclick=()=>{if(!results)return;download(new Blob(['metric,value\n'+Object.entries(results).map(([k,v])=>k+','+v).join('\n')],{type:'text/csv'}),'ETA_B_results.csv')};el('png').onclick=()=>overlay.toBlob(b=>download(b,'ETA_B_overlay.png'));
-</script></body></html>
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}el('csv').onclick=()=>{if(!results)return;download(new Blob(['metric,value\n'+Object.entries(results).map(([k,v])=>k+','+v).join('\n')],{type:'text/csv'}),'ETA_B_results.csv')};el('png').onclick=()=>overlay.toBlob(b=>download(b,'ETA_B_overlay.png'));
 </script></body></html>

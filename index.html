@@ -86,3 +86,5 @@ el('run').onclick=()=>{try{
 };
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}el('csv').onclick=()=>{if(!results)return;download(new Blob(['metric,value\n'+Object.entries(results).map(([k,v])=>k+','+v).join('\n')],{type:'text/csv'}),'ETA_B_results.csv')};el('png').onclick=()=>overlay.toBlob(b=>download(b,'ETA_B_overlay.png'));
 </script></body></html>
+function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}el('csv').onclick=()=>{if(!results)return;download(new Blob(['metric,value\n'+Object.entries(results).map(([k,v])=>k+','+v).join('\n')],{type:'text/csv'}),'ETA_B_results.csv')};el('png').onclick=()=>overlay.toBlob(b=>download(b,'ETA_B_overlay.png'));
+</script></body></html>
